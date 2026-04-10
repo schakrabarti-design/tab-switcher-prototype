@@ -175,6 +175,9 @@
     flex-shrink: 0;
   }
   .tab-icon-default { transition: opacity 0.1s; filter: grayscale(100%) brightness(0); opacity: 0.45; }
+  /* White-mono icons (e.g. Make) are already white — no inversion needed in dark mode */
+  @media (prefers-color-scheme: dark) { .tab-icon-mono-white { filter: none; } }
+  html[data-theme="dark"] .tab-icon-mono-white { filter: none; }
   .tab-icon-colored {
     position: absolute;
     inset: 0;
@@ -727,28 +730,120 @@
     --color-group: #daecdf;
   }
 
-  /* ── Controls ─────────────────────────────────────────────── */
-  .proto-control {
+  /* ── Settings panel ───────────────────────────────────────── */
+  .proto-settings-btn {
     position: fixed;
     right: 20px;
+    bottom: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     background: rgba(0,0,0,0.35);
     border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 8px;
-    padding: 6px 12px;
-    font-size: 12px;
-    font-family: var(--font);
+    font-size: 16px;
     color: rgba(255,255,255,0.8);
     cursor: pointer;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     z-index: 999;
     transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .proto-control:hover { background: rgba(0,0,0,0.5); }
+  .proto-settings-btn:hover,
+  .proto-settings-btn.open { background: rgba(0,0,0,0.55); }
 
-  #subtabStyleToggle { bottom: 60px; }
+  .proto-settings-panel {
+    position: fixed;
+    right: 20px;
+    bottom: 64px;
+    width: 220px;
+    background: rgba(30,30,30,0.92);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 8px 0;
+    z-index: 999;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    font-family: var(--font);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
 
-  #themeToggle { bottom: 20px; }
+  .proto-section { padding: 6px 12px; }
+  .proto-section + .proto-section {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin-top: 4px;
+    padding-top: 10px;
+  }
+
+  .proto-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    margin-bottom: 6px;
+  }
+
+  .proto-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .proto-row-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    flex: 1;
+  }
+
+  .proto-pill-btn {
+    font-size: 11px;
+    font-family: var(--font);
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+  }
+  .proto-pill-btn.active {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+    border-color: rgba(255,255,255,0.35);
+  }
+
+  .proto-select {
+    font-size: 11px;
+    font-family: var(--font);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 6px;
+    color: rgba(255,255,255,0.7);
+    padding: 2px 4px;
+    cursor: pointer;
+    max-width: 80px;
+  }
+
+  .proto-action-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    font-size: 12px;
+    font-family: var(--font);
+    padding: 5px 6px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    transition: background 0.12s;
+    margin-bottom: 2px;
+  }
+  .proto-action-btn:hover { background: rgba(255,255,255,0.1); }
 
 </style>
 </head>
@@ -821,8 +916,37 @@
 
 </div>
 
-<button id="subtabStyleToggle" class="proto-control"></button>
-<button id="themeToggle" class="proto-control"></button>
+<button id="settingsBtn" class="proto-settings-btn" title="Settings">⚙</button>
+
+<div id="settingsPanel" class="proto-settings-panel" hidden>
+
+  <div class="proto-section">
+    <div class="proto-section-label">Scenarios</div>
+    <div class="proto-row">
+      <span class="proto-row-label">File type</span>
+      <button id="fileTypeToggle" class="proto-pill-btn">Off</button>
+      <select id="fileTypeSelect" class="proto-select">
+        <option value="design">Design</option>
+        <option value="figjam">FigJam</option>
+        <option value="prototype">Prototype</option>
+        <option value="slide">Slide</option>
+        <option value="make">Make</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="proto-section">
+    <div class="proto-section-label">Tabs</div>
+    <button id="resetBtn" class="proto-action-btn">↺ Reset tabs</button>
+  </div>
+
+  <div class="proto-section">
+    <div class="proto-section-label">Appearance</div>
+    <button id="subtabStyleToggle" class="proto-action-btn"></button>
+    <button id="themeToggle" class="proto-action-btn"></button>
+  </div>
+
+</div>
 
 <script>
   const now = Date.now();
@@ -846,7 +970,7 @@
   const TABS = [
     { id: 0,  name: "Design",          icon: "✏️",  iconUrl: ICON_DESIGN, colorUrl: ICON_PEN_COLOR,    bg: "#EAF3FC", collaborators: [{initials:"MK", color:"#E07B6A"}, {initials:"RP", color:"#6A8BE0"}] },
     { id: 1,  name: "FigJam",          icon: "🟪",  iconUrl: ICON_FIGJAM, colorUrl: ICON_FIGJAM_COLOR, bg: "#F0E8FC", deactivated: true },
-    { id: 2,  name: "Prototype",       icon: "▶️",  iconUrl: ICON_MAKE,   colorUrl: ICON_MAKE_COLOR,   bg: "#E8FAF0", collaborators: [{initials:"SL", color:"#6AC47B"}] },
+    { id: 2,  name: "Prototype",       icon: "▶️",  iconUrl: ICON_MAKE,   colorUrl: ICON_MAKE_COLOR,   bg: "#E8FAF0", monoWhite: true, collaborators: [{initials:"SL", color:"#6AC47B"}] },
     { id: 3,  name: "Slide deck",      icon: "🖼️", iconUrl: ICON_SLIDE,  colorUrl: ICON_SLIDE_COLOR,  bg: "#FDF4E3", groupId: "work" },
     { id: 4,  name: "Jam jam",         icon: "🥳",  iconUrl: ICON_FIGJAM, colorUrl: ICON_FIGJAM_COLOR, bg: "#FCE8E8", groupId: "work", collaborators: [{initials:"AJ", color:"#E0A96A"}, {initials:"TN", color:"#9B6AE0"}, {initials:"CW", color:"#6ABDE0"}] },
     { id: 5,  name: "UI3 Library",     icon: "📐",  iconUrl: ICON_DESIGN, colorUrl: ICON_PEN_COLOR,    bg: "#E8EBFC", deactivated: true },
@@ -892,8 +1016,9 @@
     }
     const s = `width:${emojiPx}px;height:${emojiPx}px;object-fit:contain;display:block`;
     if (tab.colorUrl) {
+      const defaultCls = tab.monoWhite ? 'tab-icon-default tab-icon-mono-white' : 'tab-icon-default';
       return `<span class="tab-icon-wrap" style="width:${emojiPx}px;height:${emojiPx}px">` +
-        `<img class="tab-icon-default" src="${tab.iconUrl}" alt="" style="${s}">` +
+        `<img class="${defaultCls}" src="${tab.iconUrl}" alt="" style="${s}">` +
         `<img class="tab-icon-colored" src="${tab.colorUrl}" alt="" style="${s}">` +
         `</span>`;
     }
