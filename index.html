@@ -1192,7 +1192,14 @@
         <span class="tab-name">${tab.name}</span>
         <span class="tab-close">${CLOSE_IMG}</span>
       `;
-      el.addEventListener('click', () => setActiveTab(i));
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.tab-close')) return;
+        setActiveTab(i);
+      });
+      el.querySelector('.tab-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeTab(i);
+      });
       attachDragHandlers(el, 'tab', i, null);
       list.appendChild(el);
     });
@@ -1783,6 +1790,37 @@
     }
 
     activeTabIndex = TABS.indexOf(activeTab);
+  }
+
+  function closeTab(index) {
+    const tab = TABS[index];
+
+    // If tab is in a group, handle group dissolution
+    if (tab.groupId) {
+      const remaining = TABS.filter((t, i) => t.groupId === tab.groupId && i !== index);
+      if (remaining.length === 0) {
+        delete GROUPS[tab.groupId];
+      } else if (remaining.length === 1) {
+        remaining[0].groupId = null;
+        delete GROUPS[tab.groupId];
+      }
+    }
+
+    TABS.splice(index, 1);
+
+    // Keep ORIGINAL_TYPES in sync
+    ORIGINAL_TYPES.splice(index, 1);
+
+    // Adjust active index
+    if (TABS.length === 0) {
+      activeTabIndex = 0;
+    } else if (activeTabIndex >= TABS.length) {
+      activeTabIndex = TABS.length - 1;
+    } else if (index < activeTabIndex) {
+      activeTabIndex--;
+    }
+
+    renderAll();
   }
 
   function setActiveTab(index) {
