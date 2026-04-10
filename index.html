@@ -191,17 +191,6 @@
   .tab.active .tab-icon-colored { opacity: 1; }
   .tab:hover .tab-icon-default,
   .tab.active .tab-icon-default { opacity: 0; }
-  /* In dark mode, mono-white icons on hover/active: keep white icon bright, hide light-mode colored variant */
-  @media (prefers-color-scheme: dark) {
-    .tab:hover .tab-icon-colored-light,
-    .tab.active .tab-icon-colored-light { opacity: 0; }
-    .tab:hover .tab-icon-mono-white,
-    .tab.active .tab-icon-mono-white { opacity: 1; }
-  }
-  html[data-theme="dark"] .tab:hover .tab-icon-colored-light,
-  html[data-theme="dark"] .tab.active .tab-icon-colored-light { opacity: 0; }
-  html[data-theme="dark"] .tab:hover .tab-icon-mono-white,
-  html[data-theme="dark"] .tab.active .tab-icon-mono-white { opacity: 1; }
   .tab.deactivated .tab-icon-default { opacity: 0.3; }
   .tab.deactivated:hover .tab-icon-default,
   .tab.deactivated.active .tab-icon-default { opacity: 0; }
@@ -1987,6 +1976,9 @@
 
     // Reset active index and re-render
     activeTabIndex = 2;
+    hoveredIndex   = 2;
+    if (switcherOpen) closeSwitcher(false);
+    frozenState = null;
     renderAll();
   });
 
