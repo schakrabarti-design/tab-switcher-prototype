@@ -1011,6 +1011,8 @@
 
   // Original tab type data — captured before any scenario is applied
   const ORIGINAL_TYPES = TABS.map(t => ({ iconUrl: t.iconUrl, colorUrl: t.colorUrl, bg: t.bg }));
+  const INITIAL_TABS   = TABS.map(t => ({ ...t }));
+  const INITIAL_GROUPS = { work: { name: 'Work', expanded: false, lastActive: null } };
 
   // Scenario state
   let fileTypeScenarioActive = false;
@@ -1964,6 +1966,29 @@
   });
 
   syncFileTypeToggle();
+
+  // ── Reset ─────────────────────────────────────────────────
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    // Restore tabs
+    TABS.length = 0;
+    INITIAL_TABS.forEach(t => TABS.push({ ...t }));
+
+    // Restore original types in sync
+    ORIGINAL_TYPES.length = 0;
+    INITIAL_TABS.forEach(t => ORIGINAL_TYPES.push({ iconUrl: t.iconUrl, colorUrl: t.colorUrl, bg: t.bg }));
+
+    // Restore groups
+    Object.keys(GROUPS).forEach(k => delete GROUPS[k]);
+    Object.keys(INITIAL_GROUPS).forEach(k => { GROUPS[k] = { ...INITIAL_GROUPS[k] }; });
+
+    // Clear scenario
+    fileTypeScenarioActive = false;
+    syncFileTypeToggle();
+
+    // Reset active index and re-render
+    activeTabIndex = 2;
+    renderAll();
+  });
 
   // ── Sub-tab style toggle ───────────────────────────────────
   const subtabToggle = document.getElementById('subtabStyleToggle');
