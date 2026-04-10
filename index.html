@@ -175,7 +175,7 @@
     flex-shrink: 0;
   }
   .tab-icon-default { transition: opacity 0.1s; filter: grayscale(100%) brightness(0); opacity: 0.45; }
-  /* White-mono icons (e.g. Make) are already white — no inversion needed in dark mode */
+  /* White-mono icons (e.g. Make): white by nature, no inversion needed in dark mode */
   @media (prefers-color-scheme: dark) { .tab-icon-mono-white { filter: none; } }
   html[data-theme="dark"] .tab-icon-mono-white { filter: none; }
   .tab-icon-colored {
@@ -191,6 +191,17 @@
   .tab.active .tab-icon-colored { opacity: 1; }
   .tab:hover .tab-icon-default,
   .tab.active .tab-icon-default { opacity: 0; }
+  /* In dark mode, mono-white icons on hover/active: keep white icon bright, hide light-mode colored variant */
+  @media (prefers-color-scheme: dark) {
+    .tab:hover .tab-icon-colored-light,
+    .tab.active .tab-icon-colored-light { opacity: 0; }
+    .tab:hover .tab-icon-mono-white,
+    .tab.active .tab-icon-mono-white { opacity: 1; }
+  }
+  html[data-theme="dark"] .tab:hover .tab-icon-colored-light,
+  html[data-theme="dark"] .tab.active .tab-icon-colored-light { opacity: 0; }
+  html[data-theme="dark"] .tab:hover .tab-icon-mono-white,
+  html[data-theme="dark"] .tab.active .tab-icon-mono-white { opacity: 1; }
   .tab.deactivated .tab-icon-default { opacity: 0.3; }
   .tab.deactivated:hover .tab-icon-default,
   .tab.deactivated.active .tab-icon-default { opacity: 0; }
@@ -998,6 +1009,40 @@
   let backtickHeld    = false;  // true while ` is physically held down
   let frozenState     = null;   // { groupId, widths[] } — left tabs frozen while group is hovered
 
+  // Original tab type data — captured before any scenario is applied
+  const ORIGINAL_TYPES = TABS.map(t => ({ iconUrl: t.iconUrl, colorUrl: t.colorUrl, bg: t.bg }));
+
+  // Scenario state
+  let fileTypeScenarioActive = false;
+
+  // File type → icon/color/bg mapping
+  const FILE_TYPE_MAP = {
+    design:    { iconUrl: ICON_DESIGN, colorUrl: ICON_PEN_COLOR,    bg: '#EAF3FC' },
+    figjam:    { iconUrl: ICON_FIGJAM, colorUrl: ICON_FIGJAM_COLOR, bg: '#F0E8FC' },
+    prototype: { iconUrl: ICON_PLAY,   colorUrl: ICON_PLAY_COLOR,   bg: '#E8FAF0' },
+    slide:     { iconUrl: ICON_SLIDE,  colorUrl: ICON_SLIDE_COLOR,  bg: '#FDF4E3' },
+    make:      { iconUrl: ICON_MAKE,   colorUrl: ICON_MAKE_COLOR,   bg: '#E8F8FD' },
+  };
+
+  function applyFileTypeScenario(type) {
+    const map = FILE_TYPE_MAP[type];
+    TABS.forEach(t => {
+      t.iconUrl  = map.iconUrl;
+      t.colorUrl = map.colorUrl;
+      t.bg       = map.bg;
+    });
+    renderAll();
+  }
+
+  function clearFileTypeScenario() {
+    TABS.forEach((t, i) => {
+      t.iconUrl  = ORIGINAL_TYPES[i].iconUrl;
+      t.colorUrl = ORIGINAL_TYPES[i].colorUrl;
+      t.bg       = ORIGINAL_TYPES[i].bg;
+    });
+    renderAll();
+  }
+
   function timeAgo(date) {
     const s = (Date.now() - date) / 1000;
     if (s < 60)        return "Edited just now";
@@ -1017,9 +1062,10 @@
     const s = `width:${emojiPx}px;height:${emojiPx}px;object-fit:contain;display:block`;
     if (tab.colorUrl) {
       const defaultCls = tab.monoWhite ? 'tab-icon-default tab-icon-mono-white' : 'tab-icon-default';
+      const coloredCls = tab.monoWhite ? 'tab-icon-colored tab-icon-colored-light' : 'tab-icon-colored';
       return `<span class="tab-icon-wrap" style="width:${emojiPx}px;height:${emojiPx}px">` +
         `<img class="${defaultCls}" src="${tab.iconUrl}" alt="" style="${s}">` +
-        `<img class="tab-icon-colored" src="${tab.colorUrl}" alt="" style="${s}">` +
+        `<img class="${coloredCls}" src="${tab.colorUrl}" alt="" style="${s}">` +
         `</span>`;
     }
     const opacity = tab.deactivated ? 0.3 : 1;
@@ -1853,6 +1899,33 @@
       settingsBtn.classList.remove('open');
     }
   });
+
+  // ── File type scenario ────────────────────────────────────────────
+  const fileTypeToggle = document.getElementById('fileTypeToggle');
+  const fileTypeSelect = document.getElementById('fileTypeSelect');
+
+  function syncFileTypeToggle() {
+    fileTypeToggle.textContent = fileTypeScenarioActive ? 'On' : 'Off';
+    fileTypeToggle.classList.toggle('active', fileTypeScenarioActive);
+    fileTypeSelect.disabled = !fileTypeScenarioActive;
+    fileTypeSelect.style.opacity = fileTypeScenarioActive ? '1' : '0.4';
+  }
+
+  fileTypeToggle.addEventListener('click', () => {
+    fileTypeScenarioActive = !fileTypeScenarioActive;
+    if (fileTypeScenarioActive) {
+      applyFileTypeScenario(fileTypeSelect.value);
+    } else {
+      clearFileTypeScenario();
+    }
+    syncFileTypeToggle();
+  });
+
+  fileTypeSelect.addEventListener('change', () => {
+    if (fileTypeScenarioActive) applyFileTypeScenario(fileTypeSelect.value);
+  });
+
+  syncFileTypeToggle();
 
   // ── Sub-tab style toggle ───────────────────────────────────
   const subtabToggle = document.getElementById('subtabStyleToggle');
