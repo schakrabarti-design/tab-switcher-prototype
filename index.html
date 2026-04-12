@@ -195,6 +195,75 @@
   .tab.deactivated:hover .tab-icon-default,
   .tab.deactivated.active .tab-icon-default { opacity: 0; }
 
+  /* ── Context menu ─────────────────────────────────────────── */
+  .ctx-menu {
+    position: fixed;
+    z-index: 9999;
+    width: 200px;
+    background: #1e1e1e;
+    border-radius: 13px;
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.04),
+      0 0 0.5px rgba(0,0,0,0.12),
+      0 10px 16px rgba(0,0,0,0.08),
+      0 2px 6px rgba(0,0,0,0.12);
+    padding: 8px 0;
+    user-select: none;
+    font-family: var(--font);
+  }
+  .ctx-item {
+    display: flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 8px 0 12px;
+    font-size: 11px;
+    font-weight: 450;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.055px;
+    cursor: default;
+    white-space: nowrap;
+    gap: 4px;
+    border-radius: 5px;
+    margin: 0 4px;
+  }
+  .ctx-item:hover { background: rgba(255,255,255,0.1); }
+  .ctx-trail { margin-left: auto; opacity: 0.4; font-size: 10px; letter-spacing: 0; }
+  .ctx-arrow { margin-left: auto; opacity: 0.5; }
+  .ctx-sep { height: 1px; background: rgba(255,255,255,0.1); margin: 7px 0; }
+  .ctx-group-header { padding: 2px 8px 6px; display: flex; flex-direction: column; gap: 6px; }
+  .ctx-group-name-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255,255,255,0.07);
+    border: 1.5px solid #0c8ce9;
+    border-radius: 4px;
+    color: rgba(255,255,255,0.9);
+    font: 450 11px var(--font);
+    letter-spacing: 0.055px;
+    padding: 3px 6px;
+    outline: none;
+  }
+  .ctx-color-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+  .ctx-swatch {
+    width: 18px; height: 18px; border-radius: 50%;
+    cursor: default; flex-shrink: 0;
+    position: relative; box-sizing: border-box;
+    outline: 1.5px solid transparent;
+    outline-offset: 1px;
+    transition: outline-color 0.1s, transform 0.1s;
+  }
+  .ctx-swatch:hover { transform: scale(1.15); }
+  .ctx-swatch.selected { outline-color: rgba(255,255,255,0.75); }
+  .ctx-swatch.swatch-none { background: transparent; border: 1.5px solid rgba(255,255,255,0.35); }
+  .ctx-has-submenu { position: relative; }
+  .ctx-submenu { display: none; position: absolute; left: 100%; top: -8px; padding-left: 6px; }
+  .ctx-submenu.ctx-submenu-visible { display: block; }
+
   .tab-close {
     position: absolute;
     right: 7px;
@@ -989,19 +1058,35 @@
   const CARD_W = 150, CARD_H = 113, GAP = 10, PANEL_PADDING = 12, PEEK = 72;
 
   const GROUPS = {
-    work: { name: 'Work', expanded: false, lastActive: null }
+    work: { name: 'Work', expanded: false, lastActive: null, color: null, colorIdx: null }
   };
+
+  // Each entry: { img: swatch image URL, bg: CSS color for group background }
+  // Images are from Figma node 390:9280
+  // swatch = circle fill color (-300 ramp), bg = group pill/container background (-200 ramp)
+  // Colors sourced from Figma variable defs on node 390:9280
+  const GROUP_COLORS = [
+    { swatch: null,      bg: null      },  // none (transparent)
+    { swatch: '#f3cfc9', bg: '#f8e5e2' },  // red
+    { swatch: '#d4d4ed', bg: '#eaeaf6' },  // violet
+    { swatch: '#d2dae4', bg: '#e9edf2' },  // blue
+    { swatch: '#e0d4ed', bg: '#f0eaf6' },  // purple
+    { swatch: '#f5dfa8', bg: '#faefd4' },  // yellow
+    { swatch: '#e8cee1', bg: '#f4e7f0' },  // pink
+    { swatch: '#f3d6c9', bg: '#f9ebe4' },  // persimmon
+  ];
 
   let activeTabIndex  = 2;   // "Prototype" starts active
   let hoveredIndex    = activeTabIndex;
   let switcherOpen    = false;
   let backtickHeld    = false;  // true while ` is physically held down
   let frozenState     = null;   // { groupId, widths[] } — left tabs frozen while group is hovered
+  let selectedTabIds  = new Set(); // tab IDs selected via Shift+click
 
   // Original tab type data — captured before any scenario is applied
   const ORIGINAL_TYPES = TABS.map(t => ({ iconUrl: t.iconUrl, colorUrl: t.colorUrl, bg: t.bg }));
   const INITIAL_TABS   = TABS.map(t => ({ ...t }));
-  const INITIAL_GROUPS = { work: { name: 'Work', expanded: false, lastActive: null } };
+  const INITIAL_GROUPS = { work: { name: 'Work', expanded: false, lastActive: null, color: null, colorIdx: null } };
 
   // Scenario state
   let fileTypeScenarioActive = false;
@@ -1092,6 +1177,7 @@
         el.dataset.dragGroup = tab.groupId;
         if (group.expanded) {
           el.style.flex = groupTabs.length + ' 1 0';
+          if (group.color) el.style.background = group.color;
         }
 
         if (!group.expanded) {
@@ -1108,6 +1194,7 @@
             </div>` : '';
 
           el.innerHTML = `<span class="group-label">${group.name}</span>${activeChipHtml}`;
+          if (group.color) el.querySelector('.group-label').style.background = group.color;
 
           el.addEventListener('click', (e) => {
             if (e.target.closest('.sub-tab')) return;
@@ -1176,7 +1263,8 @@
       }
 
       const el = document.createElement('div');
-      el.className = 'tab' + (i === activeTabIndex ? ' active' : '') + (tab.deactivated ? ' deactivated' : '');
+      const isSelected = selectedTabIds.has(tab.id);
+      el.className = 'tab' + (i === activeTabIndex || isSelected ? ' active' : '') + (tab.deactivated ? ' deactivated' : '');
       el.dataset.dragIdx = i;
       el.innerHTML = `
         <span class="tab-icon">${iconHtml(tab, 13, 26)}</span>
@@ -1185,6 +1273,14 @@
       `;
       el.addEventListener('click', (e) => {
         if (e.target.closest('.tab-close')) return;
+        if (e.shiftKey) {
+          const id = tab.id;
+          if (selectedTabIds.has(id)) selectedTabIds.delete(id);
+          else selectedTabIds.add(id);
+          renderTabstrip();
+          return;
+        }
+        selectedTabIds.clear();
         setActiveTab(i);
       });
       el.querySelector('.tab-close').addEventListener('click', (e) => {
@@ -1334,6 +1430,7 @@
     el.dataset.dragGroup = groupId;
     if (group.expanded) {
       el.style.flex = groupTabs.length + ' 1 0';
+      if (group.color) el.style.background = group.color;
     }
 
     if (!group.expanded) {
@@ -1350,6 +1447,7 @@
         </div>` : '';
 
       el.innerHTML = `<span class="group-label">${group.name}</span>${activeChipHtml}`;
+      if (group.color) el.querySelector('.group-label').style.background = group.color;
 
       el.addEventListener('click', (e) => {
         if (e.target.closest('.sub-tab')) return;
@@ -2008,6 +2106,307 @@
     syncToggle();
   });
   syncToggle();
+
+  // ── Context menu ────────────────────────────────────────────
+  let activeCtxMenu = null;
+
+  function hideContextMenu() {
+    if (activeCtxMenu) { activeCtxMenu.remove(); activeCtxMenu = null; }
+  }
+
+  function buildMenuEl(items) {
+    const menu = document.createElement('div');
+    menu.className = 'ctx-menu';
+    for (const item of items) {
+      if (item === '---') {
+        const sep = document.createElement('div');
+        sep.className = 'ctx-sep';
+        menu.appendChild(sep);
+      } else if (item.type === 'group-header') {
+        menu.appendChild(buildGroupHeader(item.groupId));
+      } else {
+        const el = document.createElement('div');
+        el.className = 'ctx-item' + (item.submenu ? ' ctx-has-submenu' : '');
+        el.innerHTML =
+          item.label +
+          (item.trail ? `<span class="ctx-trail">${item.trail}</span>` : '') +
+          (item.submenu ? `<span class="ctx-arrow">›</span>` : '');
+        if (item.action) {
+          el.addEventListener('mousedown', e => {
+            e.stopPropagation();
+            item.action();
+            hideContextMenu();
+          });
+        }
+        if (item.submenu) {
+          const sub = buildMenuEl(item.submenu);
+          sub.classList.add('ctx-submenu');
+          el.appendChild(sub);
+          // JS-controlled submenu — timer-based to survive the gap between item and submenu
+          let hideTimer = null;
+          const showSub  = () => { clearTimeout(hideTimer); sub.classList.add('ctx-submenu-visible'); };
+          const hideSub  = () => { hideTimer = setTimeout(() => sub.classList.remove('ctx-submenu-visible'), 120); };
+          el.addEventListener('mouseenter', showSub);
+          el.addEventListener('mouseleave', hideSub);
+          sub.addEventListener('mouseenter', showSub);
+          sub.addEventListener('mouseleave', hideSub);
+        }
+        menu.appendChild(el);
+      }
+    }
+    return menu;
+  }
+
+  // Applies group.color to the correct element depending on collapsed/expanded state:
+  // collapsed → .group-label (the colored pill); expanded → .group-tab itself
+  function applyGroupColor(groupId) {
+    const group = GROUPS[groupId];
+    const groupEl = document.querySelector(`[data-drag-group="${groupId}"]`);
+    if (!groupEl) return;
+    if (group.expanded) {
+      groupEl.style.background = group.color || '';
+    } else {
+      const labelEl = groupEl.querySelector('.group-label');
+      if (labelEl) labelEl.style.background = group.color || '';
+    }
+  }
+
+  function buildGroupHeader(groupId) {
+    const group = GROUPS[groupId];
+    const header = document.createElement('div');
+    header.className = 'ctx-group-header';
+
+    const input = document.createElement('input');
+    input.className = 'ctx-group-name-input';
+    input.value = group.name;
+    input.addEventListener('mousedown', e => e.stopPropagation());
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        group.name = input.value;
+        const oldEl = document.querySelector(`[data-drag-group="${groupId}"]`);
+        if (oldEl) rebuildGroupElement(groupId, oldEl);
+        hideContextMenu();
+      }
+      if (e.key === 'Escape') hideContextMenu();
+      e.stopPropagation();
+    });
+
+    const colorRow = document.createElement('div');
+    colorRow.className = 'ctx-color-row';
+    GROUP_COLORS.forEach((entry, idx) => {
+      const swatch = document.createElement('div');
+      swatch.className = 'ctx-swatch'
+        + (group.colorIdx === idx ? ' selected' : '')
+        + (entry.swatch === null ? ' swatch-none' : '');
+      if (entry.swatch) swatch.style.background = entry.swatch;
+      swatch.addEventListener('mousedown', e => {
+        e.stopPropagation();
+        group.colorIdx = idx;
+        group.color = entry.bg;
+        applyGroupColor(groupId);
+        colorRow.querySelectorAll('.ctx-swatch').forEach(s => s.classList.remove('selected'));
+        swatch.classList.add('selected');
+      });
+      colorRow.appendChild(swatch);
+    });
+
+    header.appendChild(input);
+    header.appendChild(colorRow);
+    setTimeout(() => input.focus(), 0);
+    return header;
+  }
+
+  function showContextMenu(items, x, y) {
+    hideContextMenu();
+    const menu = buildMenuEl(items);
+    document.body.appendChild(menu);
+    const mw = 200, mh = menu.offsetHeight;
+    menu.style.left = (x + mw > window.innerWidth  ? x - mw : x) + 'px';
+    menu.style.top  = (y + mh > window.innerHeight ? y - mh : y) + 'px';
+    activeCtxMenu = menu;
+  }
+
+  // Action helpers
+  function getExistingGroupIds() {
+    return [...new Set(TABS.filter(t => t.groupId).map(t => t.groupId))];
+  }
+
+  function addToGroupSubmenu(targetTabIds) {
+    const existing = getExistingGroupIds();
+    const items = [
+      { label: 'New Tab Group', action: () => createNewGroup(targetTabIds) },
+    ];
+    if (existing.length) {
+      items.push('---');
+      existing.forEach(gid => {
+        items.push({
+          label: GROUPS[gid].name,
+          action: () => {
+            targetTabIds.forEach(id => {
+              const tab = TABS.find(t => t.id === id);
+              if (tab) tab.groupId = gid;
+            });
+            renderAll();
+          }
+        });
+      });
+    }
+    return items;
+  }
+
+  function createNewGroup(tabIds) {
+    const groupId = 'grp_' + Date.now();
+    GROUPS[groupId] = { name: 'Group', expanded: false, lastActive: null, color: null };
+    tabIds.forEach(id => {
+      const tab = TABS.find(t => t.id === id);
+      if (tab) tab.groupId = groupId;
+    });
+    renderAll();
+  }
+
+  function closeTabById(tabId) {
+    const idx = TABS.findIndex(t => t.id === tabId);
+    if (idx >= 0) closeTab(idx);
+  }
+
+  function closeOtherTabs(keepTabId) {
+    for (let i = TABS.length - 1; i >= 0; i--) {
+      if (TABS[i].id !== keepTabId) closeTab(i);
+    }
+  }
+
+  function closeAllTabs() {
+    while (TABS.length > 0) closeTab(0);
+  }
+
+  // Menu builders
+  function buildSingleTabMenu(tab) {
+    const tabId = tab.id;
+    return [
+      { label: 'Copy Link', trail: '⌘L', action: () => {} },
+      { label: 'Rename File', action: () => {} },
+      { label: 'Reload Tab', action: () => {} },
+      '---',
+      { label: 'Move to New Window', action: () => {} },
+      { label: 'Add to Tab Group', submenu: addToGroupSubmenu([tabId]) },
+      '---',
+      { label: 'Open in Split Tab', action: () => {} },
+      { label: 'Pin Tab', action: () => {} },
+      '---',
+      { label: 'Close Tab', action: () => closeTabById(tabId) },
+      { label: 'Close Other Tabs', action: () => closeOtherTabs(tabId) },
+      { label: 'Close All Tabs', action: () => closeAllTabs() },
+    ];
+  }
+
+  function buildSubTabMenu(tab) {
+    const tabId = tab.id;
+    const oldGroupId = tab.groupId;
+    return [
+      { label: 'Copy Link', trail: '⌘L', action: () => {} },
+      { label: 'Rename File', action: () => {} },
+      { label: 'Reload Tab', action: () => {} },
+      '---',
+      { label: 'Move to New Window', action: () => {} },
+      { label: 'Remove from Tab Group', action: () => {
+        tab.groupId = null;
+        if (!TABS.some(t => t.groupId === oldGroupId)) delete GROUPS[oldGroupId];
+        renderAll();
+      }},
+      { label: 'Add to New Tab Group', action: () => {
+        tab.groupId = null;
+        if (!TABS.some(t => t.groupId === oldGroupId)) delete GROUPS[oldGroupId];
+        createNewGroup([tabId]);
+      }},
+      '---',
+      { label: 'Open in Split Tab', action: () => {} },
+      { label: 'Pin Tab', action: () => {} },
+      '---',
+      { label: 'Close Tab', action: () => closeTabById(tabId) },
+      { label: 'Close Other Tabs', action: () => closeOtherTabs(tabId) },
+      { label: 'Close All Tabs', action: () => closeAllTabs() },
+    ];
+  }
+
+  function buildMultiTabMenu(tabIds) {
+    return [
+      { label: 'Copy Links', trail: '⌘L', action: () => {} },
+      { label: 'Reload Tabs', action: () => {} },
+      '---',
+      { label: 'Move to New Window', action: () => {} },
+      { label: 'Add to Tab Group', submenu: addToGroupSubmenu(tabIds) },
+      '---',
+      { label: 'Pin Tab', action: () => {} },
+      '---',
+      { label: 'Close Tabs', action: () => {
+        const sorted = [...tabIds].sort((a, b) => TABS.findIndex(t=>t.id===b) - TABS.findIndex(t=>t.id===a));
+        sorted.forEach(id => closeTabById(id));
+      }},
+      { label: 'Close Other Tabs', action: () => {
+        const keep = new Set(tabIds);
+        for (let i = TABS.length - 1; i >= 0; i--)
+          if (!keep.has(TABS[i].id)) closeTab(i);
+      }},
+      { label: 'Close All Tabs', action: () => closeAllTabs() },
+    ];
+  }
+
+  function buildGroupMenu(groupId) {
+    return [
+      { type: 'group-header', groupId },
+      '---',
+      { label: 'Move to New Window', action: () => {} },
+      '---',
+      { label: 'Ungroup', action: () => {
+        TABS.filter(t => t.groupId === groupId).forEach(t => t.groupId = null);
+        delete GROUPS[groupId];
+        renderAll();
+      }},
+      { label: 'Delete group', action: () => {
+        const idxs = [];
+        TABS.forEach((t, i) => { if (t.groupId === groupId) idxs.push(i); });
+        for (let i = idxs.length - 1; i >= 0; i--) closeTab(idxs[i]);
+        if (GROUPS[groupId]) delete GROUPS[groupId];
+        renderAll();
+      }},
+    ];
+  }
+
+  // Context menu trigger
+  document.getElementById('tabsList').addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const subTabEl = e.target.closest('.sub-tab');
+    const groupEl  = e.target.closest('.group-tab');
+    const tabEl    = e.target.closest('.tab');
+    let items;
+
+    if (groupEl && !subTabEl) {
+      items = buildGroupMenu(groupEl.dataset.dragGroup);
+    } else if (subTabEl && groupEl && groupEl.classList.contains('expanded')) {
+      const tabIdx = parseInt(subTabEl.dataset.id);
+      items = buildSubTabMenu(TABS[tabIdx]);
+    } else if (tabEl) {
+      const dragIdx = parseInt(tabEl.dataset.dragIdx);
+      const tab = TABS[dragIdx];
+      if (selectedTabIds.size > 1 && selectedTabIds.has(tab.id)) {
+        items = buildMultiTabMenu([...selectedTabIds]);
+      } else {
+        selectedTabIds.clear();
+        items = buildSingleTabMenu(tab);
+      }
+    } else {
+      return;
+    }
+
+    showContextMenu(items, e.clientX, e.clientY);
+  });
+
+  document.addEventListener('mousedown', e => {
+    if (activeCtxMenu && !activeCtxMenu.contains(e.target)) hideContextMenu();
+  }, true);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && activeCtxMenu) hideContextMenu();
+  });
 
   // ── Init ───────────────────────────────────────────────────
   document.getElementById('tabstrip').addEventListener('mouseleave', unfreezeTabs);
