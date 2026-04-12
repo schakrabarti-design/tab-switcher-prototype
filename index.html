@@ -1264,7 +1264,11 @@
 
       const el = document.createElement('div');
       const isSelected = selectedTabIds.has(tab.id);
-      el.className = 'tab' + (i === activeTabIndex || isSelected ? ' active' : '') + (tab.deactivated ? ' deactivated' : '');
+      // During a shift-selection, only explicitly selected tabs get the active appearance.
+      // The activeTabIndex tab looks normal unless it's also shift-selected, so the user
+      // can clearly see which tabs are actually in their selection.
+      const showActive = selectedTabIds.size > 0 ? isSelected : (i === activeTabIndex);
+      el.className = 'tab' + (showActive ? ' active' : '') + (tab.deactivated ? ' deactivated' : '');
       el.dataset.dragIdx = i;
       el.innerHTML = `
         <span class="tab-icon">${iconHtml(tab, 13, 26)}</span>
