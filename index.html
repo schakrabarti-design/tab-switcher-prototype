@@ -2283,9 +2283,21 @@
     return items;
   }
 
+  function pickGroupColorIdx() {
+    const used = new Set(
+      Object.values(GROUPS).map(g => g.colorIdx).filter(i => i != null && i > 0)
+    );
+    for (let i = 1; i < GROUP_COLORS.length; i++) {
+      if (!used.has(i)) return i;
+    }
+    return 1; // all 7 in use — wrap back to first
+  }
+
   function createNewGroup(tabIds) {
     const groupId = 'grp_' + Date.now();
-    GROUPS[groupId] = { name: 'Group', expanded: true, lastActive: null, color: null, colorIdx: null };
+    const colorIdx = pickGroupColorIdx();
+    const colorEntry = GROUP_COLORS[colorIdx];
+    GROUPS[groupId] = { name: 'Group', expanded: true, lastActive: null, color: colorEntry.bg, colorIdx };
     tabIds.forEach(id => {
       const tab = TABS.find(t => t.id === id);
       if (tab) tab.groupId = groupId;
