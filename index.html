@@ -1278,6 +1278,10 @@
       el.addEventListener('click', (e) => {
         if (e.target.closest('.tab-close')) return;
         if (e.shiftKey) {
+          // On the first shift-click, anchor the selection from the current active tab
+          if (selectedTabIds.size === 0 && TABS[activeTabIndex]) {
+            selectedTabIds.add(TABS[activeTabIndex].id);
+          }
           const id = tab.id;
           if (selectedTabIds.has(id)) selectedTabIds.delete(id);
           else selectedTabIds.add(id);
