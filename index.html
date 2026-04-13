@@ -2202,14 +2202,14 @@
     input.className = 'ctx-group-name-input';
     input.value = group.name;
     input.addEventListener('mousedown', e => e.stopPropagation());
+    // Live rename — update group name and tabstrip label on every keystroke
+    input.addEventListener('input', () => {
+      group.name = input.value;
+      const labelEl = document.querySelector(`[data-drag-group="${groupId}"] .group-label`);
+      if (labelEl) labelEl.textContent = input.value;
+    });
     input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        group.name = input.value;
-        const oldEl = document.querySelector(`[data-drag-group="${groupId}"]`);
-        if (oldEl) rebuildGroupElement(groupId, oldEl);
-        hideContextMenu();
-      }
-      if (e.key === 'Escape') hideContextMenu();
+      if (e.key === 'Enter' || e.key === 'Escape') hideContextMenu();
       e.stopPropagation();
     });
 
@@ -2234,7 +2234,7 @@
 
     header.appendChild(input);
     header.appendChild(colorRow);
-    setTimeout(() => input.focus(), 0);
+    setTimeout(() => { input.focus(); input.select(); }, 0);
     return header;
   }
 
@@ -2296,6 +2296,15 @@
       if (tab) tab.groupId = groupId;
     });
     renderAll();
+    // Auto-open the group menu so the user can immediately name the group.
+    // rAF ensures the DOM has been laid out before we measure position.
+    requestAnimationFrame(() => {
+      const groupEl = document.querySelector(`[data-drag-group="${groupId}"]`);
+      if (groupEl) {
+        const rect = groupEl.getBoundingClientRect();
+        showContextMenu(buildGroupMenu(groupId), rect.left, rect.bottom + 4);
+      }
+    });
   }
 
   function closeTabById(tabId) {
