@@ -1693,10 +1693,11 @@
     const pillLeft = 8;   // container padding-left
     const pillTop  = 7;   // (38 - 24) / 2
 
-    // Stacking context
+    // Stacking context — keep the assigned color so nothing flashes green
+    const collapseColor = GROUPS[groupId].color || 'var(--color-group)';
     el.style.position   = 'relative';
     el.style.isolation  = 'isolate';
-    el.style.background = 'transparent';
+    el.style.background = collapseColor;
 
     el.querySelectorAll('.group-label, .group-subtabs, .sub-tab').forEach(c => {
       c.style.position = 'relative';
@@ -1706,7 +1707,7 @@
     // Overlay starts filling the full container
     const overlay = document.createElement('div');
     overlay.style.cssText = `position:absolute;left:0;top:0;width:100%;height:100%;` +
-      `background:var(--color-group);border-radius:0;pointer-events:none;z-index:0;`;
+      `background:${collapseColor};border-radius:0;pointer-events:none;z-index:0;`;
     el.insertBefore(overlay, el.firstChild);
 
     const chips = el.querySelectorAll('.group-subtabs');
