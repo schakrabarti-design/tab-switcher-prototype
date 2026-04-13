@@ -1640,19 +1640,18 @@
         el.querySelectorAll('.group-label, .group-subtabs, .sub-tab').forEach(c => {
           c.style.position = c.style.zIndex = c.style.opacity = c.style.transition = '';
         });
-        // Keep fixed during frozen state; otherwise compute grow so sub-tabs = regular tab width
-        if (frozenState) {
-          el.style.flex = '0 0 ' + endW + 'px';
-        } else {
-          const stripW2 = list.offsetWidth;
-          const M2 = list.querySelectorAll('.tab').length;
-          const lbl2 = el.querySelector('.group-label');
-          const lblW2 = lbl2 ? lbl2.offsetWidth : 50;
-          const ovhd2 = 20 + lblW2 + Math.max(0, groupTabs.length - 1) * 3;
-          el.style.flex = (stripW2 > ovhd2
-            ? (ovhd2 * M2 + stripW2 * groupTabs.length) / (stripW2 - ovhd2)
-            : groupTabs.length) + ' 1 0';
-        }
+        // Unfreeze any pinned tab widths so the strip can reflow naturally.
+        // Previously this kept the group fixed at endW during frozen state, but that
+        // caused the group to overflow when combined with frozen left-tab widths.
+        unfreezeTabs();
+        const stripW2 = list.offsetWidth;
+        const M2 = list.querySelectorAll('.tab').length;
+        const lbl2 = el.querySelector('.group-label');
+        const lblW2 = lbl2 ? lbl2.offsetWidth : 50;
+        const ovhd2 = 20 + lblW2 + Math.max(0, groupTabs.length - 1) * 3;
+        el.style.flex = (stripW2 > ovhd2
+          ? (ovhd2 * M2 + stripW2 * groupTabs.length) / (stripW2 - ovhd2)
+          : groupTabs.length) + ' 1 0';
       };
       el.addEventListener('transitionend', onDone);
     }));
