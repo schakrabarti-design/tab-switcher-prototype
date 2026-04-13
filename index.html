@@ -1617,8 +1617,9 @@
 
     // Overlay starts at the collapsed pill's exact position
     const overlay = document.createElement('div');
+    const groupColor = GROUPS[groupId].color || 'var(--color-group)';
     overlay.style.cssText = `position:absolute;left:${pillLeft}px;top:${pillTop}px;` +
-      `width:${pillW}px;height:${pillH}px;background:var(--color-group);` +
+      `width:${pillW}px;height:${pillH}px;background:${groupColor};` +
       `border-radius:5px;pointer-events:none;z-index:0;`;
     el.insertBefore(overlay, el.firstChild);
 
@@ -1650,12 +1651,14 @@
       const onDone = (e) => {
         if (e.target !== el || e.propertyName !== 'width') return;
         el.removeEventListener('transitionend', onDone);
-        el.style.position = el.style.isolation = el.style.background =
-          el.style.width = el.style.transition = '';
+        el.style.position = el.style.isolation = el.style.width = el.style.transition = '';
         overlay.remove();
         el.querySelectorAll('.group-label, .group-subtabs, .sub-tab').forEach(c => {
           c.style.position = c.style.zIndex = c.style.opacity = c.style.transition = '';
         });
+        // Re-apply assigned color — CSS .group-tab.expanded always resets to the
+        // default green, so we override it with an inline style.
+        el.style.background = GROUPS[groupId].color || '';
         // Keep left tabs frozen so the group's x-position doesn't jump.
         // Give the group a flex-grow that holds it at cappedEndW within the
         // available (non-frozen) space; unfreeze only when the cursor leaves.
