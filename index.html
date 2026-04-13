@@ -2202,14 +2202,14 @@
     input.className = 'ctx-group-name-input';
     input.value = group.name;
     input.addEventListener('mousedown', e => e.stopPropagation());
-    // Live rename — update group name and tabstrip label on every keystroke
-    input.addEventListener('input', () => {
-      group.name = input.value;
-      const labelEl = document.querySelector(`[data-drag-group="${groupId}"] .group-label`);
-      if (labelEl) labelEl.textContent = input.value;
-    });
     input.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === 'Escape') hideContextMenu();
+      if (e.key === 'Enter') {
+        group.name = input.value;
+        const oldEl = document.querySelector(`[data-drag-group="${groupId}"]`);
+        if (oldEl) rebuildGroupElement(groupId, oldEl);
+        hideContextMenu();
+      }
+      if (e.key === 'Escape') hideContextMenu();
       e.stopPropagation();
     });
 
