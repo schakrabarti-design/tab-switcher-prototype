@@ -43,26 +43,4 @@ Source: staging.figma.com/design/VV0lEzfx975wMbMiIrfwAp node 320:12728
 | 6 | Mark | FPL menus are always dark — color swatches that work in light mode may blend in / disappear in dark mode. May need an adjusting border or mode-respecting menu | Open |
 | 6r | Mark | Light mode colors pop against the dark menu, but in dark mode the colors blend in — especially a problem for the selection state ring | Open |
 
-### Actionable prototype TODOs from comments
-- [ ] Add a grayscale swatch to `GROUP_COLORS`
-- [ ] Rename "Add to New Tab Group" → "Add to Tab Group" in `buildSubTabMenu`
-- [ ] Design + implement deselect behavior for multi-tab selection (e.g. click outside, Escape, click selected tab again)
-- [ ] Design drag behavior for multi-selected tabs
-- [ ] Color swatch hover state (currently no visual feedback)
-- [ ] Color swatch keyboard focus state — 2px focus outline, distinct from selected ring
-- [ ] Review swatch colors for dark mode contrast — light pastels may be too subtle against the always-dark FPL menu background; consider a thin border on each swatch
-
----
-
-## 2026-04-14 — Future work backlog
-
-### Tab hover card
-On tab hover, show a hover card — preview of the tab content + metadata. Potentially surface live thinking/AI state for Figma Make tabs inline in the card (not just a badge on the tab itself). Pairs with Idea #002 (AI chat state indicator).
-
-### Visual polish pass
-Current prototype is functional but rough. Needs a design pass that incorporates the new color system, group styling, and animation decisions made in the session above. Should feel closer to actual Figma Make UI quality.
-
----
-
-## 2026-04-14 — Idea #002 queued
-Next feature to add: AI chat state indicator on tabs. Concept: use Figma's badged icon component (red dot = thinking, green checkmark = complete) + play a sound when AI chat finishes. Reference component: https://staging.figma.com/design/ycDPAaAih2bZY5LgXehVai/UI3-Icons?node-id=11665:4349
+*Actionable items moved to `_brain/todos.md`*
