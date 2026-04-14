@@ -262,19 +262,12 @@
     border-radius: 50%;
     flex-shrink: 0;
     box-sizing: border-box;
-    /* Thin border improves contrast of light pastels against the always-dark menu */
-    border: 1px solid rgba(0,0,0,0.08);
-    transition: outline-color 0.12s, box-shadow 0.12s;
+    transition: outline-color 0.12s;
     outline: 1.5px solid transparent;
     outline-offset: 1.5px;
   }
-  /* Hover: gentle brightness lift on the hit area */
-  .ctx-swatch:hover .ctx-swatch-dot { box-shadow: 0 0 0 3px rgba(255,255,255,0.12); }
   /* Selected ring sits in the 3px gap between dot and hit area */
   .ctx-swatch.selected .ctx-swatch-dot { outline-color: rgba(255,255,255,0.8); }
-  /* Keyboard focus: 2px blue outline, overrides selected ring while focused */
-  .ctx-swatch:focus { outline: none; }
-  .ctx-swatch:focus .ctx-swatch-dot { outline: 2px solid rgba(10,132,255,0.9); outline-offset: 1.5px; }
   /* None swatch: hollow circle outline */
   .ctx-swatch.swatch-none .ctx-swatch-dot {
     background: transparent;
@@ -1094,7 +1087,6 @@
     { swatch: '#f5dfa8', bg: '#faefd4' },  // yellow
     { swatch: '#e8cee1', bg: '#f4e7f0' },  // pink
     { swatch: '#f3d6c9', bg: '#f9ebe4' },  // persimmon
-    { swatch: '#c8c8c8', bg: '#e8e8e8' },  // gray
   ];
 
   let activeTabIndex  = 2;   // "Prototype" starts active
@@ -2248,23 +2240,13 @@
       if (entry.swatch) dot.style.background = entry.swatch;
       swatch.appendChild(dot);
 
-      // Keyboard-focusable so arrow-key nav and focus ring work
-      swatch.tabIndex = 0;
-
-      const selectSwatch = () => {
+      swatch.addEventListener('mousedown', e => {
+        e.stopPropagation();
         group.colorIdx = idx;
         group.color = entry.bg;
         applyGroupColor(groupId);
         colorRow.querySelectorAll('.ctx-swatch').forEach(s => s.classList.remove('selected'));
         swatch.classList.add('selected');
-      };
-
-      swatch.addEventListener('mousedown', e => { e.stopPropagation(); selectSwatch(); });
-      swatch.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectSwatch(); }
-        // Arrow keys move focus between swatches
-        if (e.key === 'ArrowRight') { e.preventDefault(); swatch.nextElementSibling?.focus(); }
-        if (e.key === 'ArrowLeft')  { e.preventDefault(); swatch.previousElementSibling?.focus(); }
       });
       colorRow.appendChild(swatch);
     });
@@ -2393,7 +2375,7 @@
         if (!TABS.some(t => t.groupId === oldGroupId)) delete GROUPS[oldGroupId];
         renderAll();
       }},
-      { label: 'Add to Tab Group', action: () => {
+      { label: 'Add to New Tab Group', action: () => {
         tab.groupId = null;
         if (!TABS.some(t => t.groupId === oldGroupId)) delete GROUPS[oldGroupId];
         createNewGroup([tabId]);
