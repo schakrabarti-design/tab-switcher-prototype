@@ -1,5 +1,8 @@
 # Project Context: Tab Switcher Prototype
 
+## Problem statement
+Figma Make tabs give no feedback about what an AI chat is doing — you can't tell if it's thinking, done, or stalled without switching to it. As AI tasks get longer, this creates constant context-switching anxiety. Separately, tab groups and management in Figma Make lack the organizational clarity that power users need. Success looks like: a designer can stay in flow, glance at the tabstrip, and immediately know the state of every AI chat without switching tabs.
+
 ## What
 A browser-based prototype of a tab switcher UI — specifically exploring Figma Make tab interactions. Features tab groups with expand/collapse, drag-and-drop reordering, and a "last active" smart chip.
 
